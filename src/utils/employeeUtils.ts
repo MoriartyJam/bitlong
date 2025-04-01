@@ -1,8 +1,40 @@
 
 import { Employee } from "@/types";
+import { supabase } from "@/utils/supabaseClient";
 
 // Local storage key
 const EMPLOYEES_KEY = 'biltong-tracker-employees';
+
+export const addEmployeeToSupabase = async (
+  employee: Omit<Employee, "id" | "createdAt">
+): Promise<Employee | null> => {
+  try {
+    const now = new Date().toISOString();
+
+    const { data, error } = await supabase
+      .from("employees")
+      .insert([{ ...employee, createdat: now }])
+      .select()
+      .single();
+
+    if (error) {
+      console.error("❌ Ошибка при добавлении сотрудника в Supabase:", error.message);
+      return null;
+    }
+
+    console.log("✅ Сотрудник добавлен в Supabase:", data);
+    return {
+      id: data.id,
+      name: data.name,
+      phone: data.phone,
+      email: data.email,
+      createdAt: data.createdat,
+    };
+  } catch (err) {
+    console.error("❌ Ошибка запроса:", err);
+    return null;
+  }
+};
 
 // Helper functions for localStorage
 const getLocalData = <T>(key: string, defaultValue: T): T => {

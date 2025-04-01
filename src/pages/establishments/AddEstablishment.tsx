@@ -11,15 +11,22 @@ export const addEstablishmentToSupabase = async (
   try {
     const now = new Date().toISOString();
 
+    // 💡 Создаем объект без id
+    const newEstablishment: Omit<Establishment, "id"> = {
+      name: establishment.name,
+      address: establishment.address,
+      contactname: establishment.contactName,
+      contactemail: establishment.contactEmail,
+      contactphone: establishment.contactPhone,
+      notes: establishment.notes,
+      createdat: now,
+      updatedat: now,
+    };
+
+    // ✅ Отправляем в Supabase (он сам создаст id)
     const { data, error } = await supabase
       .from("establishments")
-      .insert([
-        {
-          ...establishment,
-          createdat: now,
-          updatedat: now,
-        }
-      ])
+      .insert([newEstablishment])
       .select()
       .single();
 

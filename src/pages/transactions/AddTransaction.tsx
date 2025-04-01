@@ -5,6 +5,55 @@ import Layout from "@/components/Layout";
 import TransactionForm from "@/components/forms/TransactionForm";
 import { useLanguage } from "@/contexts/LanguageContext";
 
+import { Transaction } from "@/types";
+import { supabase } from "@/utils/supabaseClient";
+
+export const addTransactionToSupabase = async (
+  transaction: Omit<Transaction, "id" | "createdAt">
+): Promise<Transaction | null> => {
+  try {
+    const now = new Date().toISOString();
+
+    const newTransaction = {
+      ...transaction,
+      createdat: now,
+    };
+
+    const { data, error } = await supabase
+      .from("transactions")
+      .insert([newTransaction])
+      .select()
+      .single();
+
+    if (error) {
+      console.error("❌ Ошибка при добавлении транзакции в Supabase:", error.message);
+      return null;
+    }
+
+    console.log("✅ Транзакция добавлена в Supabase:", data);
+
+    // ✅ Добавим в localStorage
+    const localTransaction: Transaction = {
+      id: data.id,
+      establishmentId: data.establishmentid,
+      type: data.type,
+      amount: data.amount,
+      date: data.date || now,
+      notes: data.notes || "",
+      createdAt: data.createdat,
+    };
+
+    const existing = getTransactions();
+    existing.push(localTransaction);
+    setLocalData("biltong-tracker-transactions", existing);
+
+    return localTransaction;
+  } catch (err) {
+    console.error("❌ Ошибка запроса:", err);
+    return null;
+  }
+};
+
 export default function AddTransaction() {
   const { t } = useLanguage();
   

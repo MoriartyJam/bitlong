@@ -6,10 +6,11 @@ import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Establishment } from "@/types";
-import { getEstablishmentsWithTransactions } from "@/utils/dataUtils";
+import { fetchEstablishmentsWithTransactionsFromSupabase } from "@/utils/dataUtils";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
 import TransactionForm from "@/components/forms/TransactionForm";
 import { useLanguage } from "@/contexts/LanguageContext";
+
 
 export default function Establishments() {
   const [establishments, setEstablishments] = useState<Establishment[]>([]);
@@ -21,10 +22,10 @@ export default function Establishments() {
     loadEstablishments();
   }, []);
 
-  const loadEstablishments = () => {
-    const data = getEstablishmentsWithTransactions();
-    setEstablishments(data);
-  };
+const loadEstablishments = async () => {
+  const data = await fetchEstablishmentsWithTransactionsFromSupabase();
+  setEstablishments(data);
+};
 
   const filteredEstablishments = establishments.filter(est => 
     est.name.toLowerCase().includes(searchQuery.toLowerCase()) ||

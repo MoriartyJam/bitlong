@@ -16,7 +16,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue 
 } from '@/components/ui/select';
 import { Product } from '@/types';
-import { addProduct, getProductCategories, generateProductId } from '@/utils/productUtils';
+import { addProduct, getProductCategories, generateProductId, addProductToSupabase } from '@/utils/productUtils';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 // Validation schema
@@ -87,26 +87,31 @@ const ProductForm: React.FC<ProductFormProps> = ({ existingProduct }) => {
     setTotalSellingPrice(total);
   }, [quantity, sellingUnitPrice]);
 
-  const onSubmit = (data: ProductFormValues) => {
-    try {
-      // Add the new product
-      addProduct({
-        title: data.title,
-        description: data.description,
-        category: data.category,
-        quantity: data.quantity,
-        lowStockLimit: data.lowStockLimit,
-        sellingUnitPrice: data.sellingUnitPrice,
-        buyingUnitPrice: data.buyingUnitPrice,
-      });
-      
+const onSubmit = async (data: ProductFormValues) => {
+  try {
+    const added = await addProductToSupabase({
+      title: data.title,
+      description: data.description,
+      category: data.category,
+      quantity: data.quantity,
+      lowStockLimit: data.lowStockLimit,
+      sellingUnitPrice: data.sellingUnitPrice,
+      buyingUnitPrice: data.buyingUnitPrice,
+    });
+
+    if (added) {
+      // Сохраняем в localStorage
+      addProduct(added);
       toast.success(t('productForm.success'));
       navigate('/products');
-    } catch (error) {
-      console.error('Error saving product:', error);
+    } else {
       toast.error(t('productForm.error'));
     }
-  };
+  } catch (error) {
+    console.error('Ошибка при добавлении продукта:', error);
+    toast.error(t('productForm.error'));
+  }
+};
 
   const today = format(new Date(), 'PPP');
 

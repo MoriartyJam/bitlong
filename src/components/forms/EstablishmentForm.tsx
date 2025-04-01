@@ -1,5 +1,6 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { updateEstablishmentInSupabase } from "@/utils/dataUtils";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -13,7 +14,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { addEstablishmentToSupabase, updateEstablishment } from "@/utils/dataUtils";
+import { addEstablishmentToSupabase, addEstablishment, updateEstablishment } from "@/utils/dataUtils";
 import { Establishment } from "@/types";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -52,38 +53,69 @@ export default function EstablishmentForm({ initialData, onSuccess }: Establishm
     },
   });
 
-  const onSubmit = (values: EstablishmentFormValues) => {
-    try {
-      if (isEditing && initialData) {
-        updateEstablishment({ ...values, id: initialData.id });
+const onSubmit = async (values: EstablishmentFormValues) => {
+  try {
+    if (isEditing && initialData) {
+      // ✅ Обновление в localStorage
+      updateEstablishment({ ...values, id: initialData.id });
+
+      // ✅ Обновление в Supabase
+      const updated = await updateEstablishmentInSupabase({ ...values, id: initialData.id });
+
+      if (updated) {
         toast.success(t('establishmentForm.success.update'));
       } else {
-        // Ensure all required fields are present
-        const establishmentData = {
-          name: values.name,
-          address: values.address,
-          contactName: values.contactName,
-          contactPhone: values.contactPhone,
-          contactEmail: values.contactEmail,
-          notes: values.notes || "",
-        };
+        toast.error(t('establishmentForm.error'));
+        return;
+      }
+    } else {
+      // ✅ Подготовка данных
+      const establishmentData = {
+        name: values.name,
+        address: values.address,
+        contactname: values.contactName,
+        contactphone: values.contactPhone,
+        contactemail: values.contactEmail,
+        notes: values.notes || "",
+      };
 
-        addEstablishmentToSupabase(establishmentData);
+      const added = await addEstablishmentToSupabase(establishmentData);
+
+      if (added) {
+        // ✅ Сохраняем и в localStorage
+        addEstablishment({
+          id: added.id,
+          name: added.name,
+          address: added.address,
+          contactName: added.contactname,
+          contactPhone: added.contactphone,
+          contactEmail: added.contactemail,
+          notes: added.notes,
+          createdAt: added.createdat,
+          updatedAt: added.updatedat,
+        });
+
         toast.success(t('establishmentForm.success.add'));
-      }
-
-      form.reset();
-
-      if (onSuccess) {
-        onSuccess();
+        if (onSuccess) onSuccess();
       } else {
-        navigate("/establishments");
+        toast.error(t('establishmentForm.error'));
+        return;
       }
-    } catch (error) {
-      console.error("Error saving establishment:", error);
-      toast.error(t('establishmentForm.error'));
     }
-  };
+
+    form.reset();
+
+    if (onSuccess) {
+      onSuccess();
+    } else {
+      navigate("/establishments");
+    }
+  } catch (error) {
+    console.error("Error saving establishment:", error);
+    toast.error(t('establishmentForm.error'));
+  }
+};
+
 
   return (
     <Form {...form}>

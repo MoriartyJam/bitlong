@@ -1,8 +1,55 @@
-
+import { supabase } from "@/utils/supabaseClient";
 import { Product } from "@/types";
 
 // Local storage key
 const PRODUCTS_KEY = 'biltong-tracker-products';
+
+export const addProductToSupabase = async (
+  product: Omit<Product, "id" | "createdAt">
+): Promise<Product | null> => {
+  try {
+    const now = new Date().toISOString();
+
+    const { data, error } = await supabase
+      .from("products")
+      .insert([
+        {
+          title: product.title,
+          description: product.description,
+          category: product.category,
+          quantity: product.quantity,
+          lowstocklimit: product.lowStockLimit,
+          sellingunitprice: product.sellingUnitPrice,
+          buyingunitprice: product.buyingUnitPrice,
+          createdat: now,
+        }
+      ])
+      .select()
+      .single();
+
+    if (error) {
+      console.error("❌ Ошибка при добавлении продукта в Supabase:", error.message);
+      return null;
+    }
+
+    console.log("✅ Продукт добавлен в Supabase:", data);
+    return {
+      id: data.id,
+      title: data.title,
+      description: data.description,
+      category: data.category,
+      quantity: data.quantity,
+      lowStockLimit: data.lowstocklimit,
+      sellingUnitPrice: data.sellingunitprice,
+      buyingUnitPrice: data.buyingunitprice,
+      createdAt: data.createdat,
+    };
+  } catch (err) {
+    console.error("❌ Ошибка запроса:", err);
+    return null;
+  }
+};
+
 
 // Helper functions for localStorage
 const getLocalData = <T>(key: string, defaultValue: T): T => {

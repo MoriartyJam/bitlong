@@ -1,11 +1,135 @@
 
 import { Establishment, Transaction, EstablishmentWithTransactions } from "@/types";
-import { supabase } from "./supabaseClient";
+import { supabase } from "@/utils/supabaseClient";
+import { Establishment } from "@/types";
 
 
 // Local storage keys
 const ESTABLISHMENTS_KEY = 'biltong-tracker-establishments';
 const TRANSACTIONS_KEY = 'biltong-tracker-transactions';
+
+export const fetchEstablishmentsFromSupabase = async (): Promise<Establishment[]> => {
+  const { data, error } = await supabase.from("establishments").select("*");
+
+  if (error || !data) {
+    console.error("❌ Ошибка загрузки заведений из Supabase:", error?.message);
+    return [];
+  }
+
+  return data;
+};
+
+
+export const addTransactionToSupabase = async (
+  transaction: Omit<Transaction, "id" | "createdAt">
+): Promise<Transaction | null> => {
+  try {
+    const now = new Date().toISOString();
+
+    const { data, error } = await supabase
+      .from("transactions")
+      .insert([
+        {
+          ...transaction,
+          createdat: now,
+        },
+      ])
+      .select()
+      .single();
+
+    if (error) {
+      console.error("❌ Ошибка при вставке транзакции в Supabase:", error.message);
+      return null;
+    }
+
+    console.log("✅ Транзакция добавлена в Supabase:", data);
+    return {
+      id: data.id,
+      ...data,
+      createdAt: data.createdat,
+    };
+  } catch (err) {
+    console.error("❌ Ошибка запроса Supabase:", err);
+    return null;
+  }
+};
+
+// Получить заведения с транзакциями из Supabase
+export const fetchEstablishmentsWithTransactionsFromSupabase = async (): Promise<EstablishmentWithTransactions[]> => {
+  const { data: establishments, error: estError } = await supabase
+    .from("establishments")
+    .select("*");
+
+  if (estError || !establishments) {
+    console.error("❌ Ошибка загрузки заведений из Supabase:", estError?.message);
+    return [];
+  }
+
+  const { data: transactions, error: txError } = await supabase
+    .from("transactions")
+    .select("*");
+
+  if (txError || !transactions) {
+    console.error("❌ Ошибка загрузки транзакций из Supabase:", txError?.message);
+    return [];
+  }
+
+  return establishments.map((est) => {
+    const estTransactions = transactions.filter(t => t.establishmentId === est.id);
+    const balance = estTransactions.reduce((sum, t) => {
+      return t.type === "delivery" ? sum + t.amount : sum - t.amount;
+    }, 0);
+
+    return {
+      ...est,
+      transactions: estTransactions,
+      balance,
+    };
+  });
+};
+
+export const updateEstablishmentInSupabase = async (
+  establishment: Partial<Establishment> & { id: string }
+): Promise<Establishment | null> => {
+  try {
+    const { id, ...updateFields } = establishment;
+    const now = new Date().toISOString();
+
+    const payload: Record<string, any> = {
+      name: updateFields.name,
+      address: updateFields.address,
+      contactname: updateFields.contactname ?? updateFields.contactName,
+      contactphone: updateFields.contactphone ?? updateFields.contactPhone,
+      contactemail: updateFields.contactemail ?? updateFields.contactEmail,
+      notes: updateFields.notes,
+      updatedat: now,
+    };
+
+    // 🔎 Логируем, что отправляем
+    console.log("📦 Данные на обновление:", establishment);
+    console.log("📤 Payload в Supabase:", payload);
+
+    const { data, error } = await supabase
+      .from("establishments")
+      .update(payload)
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("❌ Ошибка при обновлении заведения в Supabase:", error.message);
+      return null;
+    }
+
+    console.log("✅ Обновлено в Supabase:", data);
+    return data as Establishment;
+  } catch (err) {
+    console.error("❌ Ошибка запроса:", err);
+    return null;
+  }
+};
+
+
 
 export const testConnection = async () => {
   const { data, error } = await supabase.from("your_table_name").select("*");

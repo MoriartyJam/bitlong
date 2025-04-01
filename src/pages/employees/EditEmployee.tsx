@@ -10,6 +10,29 @@ import { getEmployee } from "@/utils/employeeUtils";
 import { Employee } from "@/types";
 import { useLanguage } from "@/contexts/LanguageContext";
 
+
+// Обновление данных сотрудника в Supabase
+export const updateEmployeeInSupabase = async (employee: Employee): Promise<boolean> => {
+  const { id, ...rest } = employee;
+
+  const { data, error } = await supabase
+    .from("employees")
+    .update({
+      ...rest,
+      updatedat: new Date().toISOString(),
+    })
+    .eq("id", id);
+
+  if (error) {
+    console.error("❌ Ошибка при обновлении в Supabase:", error);
+    return false;
+  }
+
+  console.log("✅ Сотрудник обновлён в Supabase:", data);
+  return true;
+};
+
+
 export default function EditEmployee() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();

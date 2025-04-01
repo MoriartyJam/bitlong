@@ -33,6 +33,10 @@ import { Employee, Establishment, Product } from "@/types";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { addTransactionToSupabase } from "@/utils/dataUtils"; // не забудь импортировать
+import { fetchEstablishmentsFromSupabase } from "@/utils/dataUtils";
+
+
 
 const transactionSchema = z.object({
   establishmentId: z.string({
@@ -81,12 +85,17 @@ export default function TransactionForm({ establishmentId, onSuccess }: Transact
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const { t } = useLanguage();
 
-  useEffect(() => {
-    setEstablishments(getEstablishments());
-    setEmployees(getEmployees());
-    setProducts(getProducts());
-  }, []);
+    useEffect(() => {
+      const fetchData = async () => {
+        const establishmentsFromDb = await fetchEstablishmentsFromSupabase();
+        setEstablishments(establishmentsFromDb);
 
+        setEmployees(getEmployees());
+        setProducts(getProducts());
+  };
+
+  fetchData();
+}, []);
   const form = useForm<TransactionFormValues>({
     resolver: zodResolver(transactionSchema),
     defaultValues: {
@@ -122,24 +131,33 @@ export default function TransactionForm({ establishmentId, onSuccess }: Transact
     }
   }, [watchProductId, watchQuantity, products, form, watchType]);
 
-  const onSubmit = (values: TransactionFormValues) => {
-    try {
-      // Ensure all required fields are present
-      const transactionData = {
-        establishmentId: values.establishmentId,
-        employeeId: values.employeeId,
-        productId: values.type === "delivery" ? values.productId : undefined,
-        quantity: values.type === "delivery" ? values.quantity : undefined,
-        type: values.type,
-        amount: Number(values.amount),
-        date: values.date.toISOString(),
-        paymentStatus: values.paymentStatus,
-        notes: values.notes || "",
-      };
-      
-      addTransaction(transactionData);
+const onSubmit = async (values: TransactionFormValues) => {
+  try {
+    const transactionData = {
+      establishmentId: values.establishmentId,
+      employeeId: values.employeeId,
+      productId: values.type === "delivery" ? values.productId : undefined,
+      quantity: values.type === "delivery" ? values.quantity : undefined,
+      type: values.type,
+      amount: Number(values.amount),
+      date: values.date.toISOString(),
+      paymentStatus: values.paymentStatus,
+      notes: values.notes || "",
+    };
+
+    // ✅ Добавляем в Supabase
+    const added = await addTransactionToSupabase(transactionData);
+
+    if (added) {
+      // ✅ Сохраняем в localStorage
+      addTransaction({
+        id: added.id,
+        ...transactionData,
+        createdAt: added.createdat,
+      });
+
       toast.success(t('transactionForm.success'));
-      
+
       form.reset({
         establishmentId: values.establishmentId,
         employeeId: "",
@@ -157,11 +175,14 @@ export default function TransactionForm({ establishmentId, onSuccess }: Transact
       } else {
         navigate("/transactions");
       }
-    } catch (error) {
-      console.error("Error saving transaction:", error);
+    } else {
       toast.error(t('transactionForm.error'));
     }
-  };
+  } catch (error) {
+    console.error("Error saving transaction:", error);
+    toast.error(t('transactionForm.error'));
+  }
+};
 
   return (
     <Form {...form}>

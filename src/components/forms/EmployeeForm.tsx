@@ -19,7 +19,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Employee } from "@/types";
-import { addEmployee, updateEmployee, generateEmployeeNumber } from "@/utils/employeeUtils";
+import { addEmployee, updateEmployee, generateEmployeeNumber, addEmployeeToSupabase } from "@/utils/employeeUtils";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 // Form schema validation
@@ -36,10 +36,10 @@ const formSchema = z.object({
 type FormData = z.infer<typeof formSchema>;
 
 interface EmployeeFormProps {
-  employee?: Employee;
+    onSuccess?: () => void;
 }
 
-const EmployeeForm = ({ employee }: EmployeeFormProps) => {
+const EmployeeForm = ({ employee, onSuccess }: EmployeeFormProps) => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { t } = useLanguage();
@@ -66,40 +66,36 @@ const EmployeeForm = ({ employee }: EmployeeFormProps) => {
     },
   });
 
-  const onSubmit = async (data: FormData) => {
-    setIsSubmitting(true);
-    
-    try {
-      if (employee) {
-        // Update existing employee
-        updateEmployee({
-          id: employee.id,
-          ...data
-        });
-        toast.success(t('employees.updateSuccess'));
+
+const onSubmit = async (values: EmployeeFormValues) => {
+  try {
+    const added = await addEmployeeToSupabase({
+      name: values.name,
+      phone: values.phone,
+      email: values.email,
+    });
+
+    if (added) {
+      // ✅ Сохраняем в localStorage
+      addEmployee(added);
+
+      toast.success(t("employeeForm.success.add"));
+
+      // ✅ Вызываем onSuccess, если передан
+      if (onSuccess) {
+        onSuccess();
       } else {
-        // Add new employee
-        addEmployee({
-          name: data.name,
-          employeeNumber: data.employeeNumber,
-          email: data.email,
-          mobile: data.mobile,
-          phone: data.phone,
-          address: data.address,
-          notes: data.notes,
-        });
-        toast.success(t('employees.addSuccess'));
+        navigate("/employees");
       }
-      
-      // Navigate back to employees list
-      navigate("/employees");
-    } catch (error) {
-      console.error("Error saving employee:", error);
-      toast.error(t('employees.saveError'));
-    } finally {
-      setIsSubmitting(false);
+    } else {
+      toast.error(t("employeeForm.error"));
     }
-  };
+  } catch (err) {
+    console.error("Ошибка при добавлении сотрудника:", err);
+    toast.error(t("employeeForm.error"));
+  }
+};
+
 
   return (
     <Form {...form}>
