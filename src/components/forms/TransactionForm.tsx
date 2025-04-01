@@ -302,6 +302,7 @@ const onSubmit = async (values: TransactionFormValues) => {
                       min="1"
                       placeholder={t('transactionForm.enterQuantity')}
                       {...field}
+                      value={field.value ?? 1}
                       onChange={(e) => {
                         field.onChange(e.target.valueAsNumber);
                       }}
@@ -326,6 +327,7 @@ const onSubmit = async (values: TransactionFormValues) => {
                   step="0.01"
                   placeholder={t('transactionForm.enterAmount')}
                   {...field}
+                  value={field.value ?? 0}
                   onChange={(e) => {
                     field.onChange(e.target.valueAsNumber);
                   }}

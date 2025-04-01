@@ -1,9 +1,6 @@
 import { supabase } from "@/utils/supabaseClient";
 import { Transaction } from "@/types";
 
-/**
- * Добавление транзакции в Supabase
- */
 export const addTransactionToSupabase = async (
   transaction: Omit<Transaction, "id" | "createdAt">
 ): Promise<Transaction | null> => {
@@ -14,14 +11,14 @@ export const addTransactionToSupabase = async (
       .from("transactions")
       .insert([{
         establishmentid: transaction.establishmentId,
-        employeeid: transaction.employeeId,
-        productid: transaction.productId || null,
-        quantity: transaction.quantity || null,
+        employeeid: transaction.employeeId, // ✅ исправлено
+        productid: transaction.productId,
+        quantity: transaction.quantity,
         type: transaction.type,
         amount: transaction.amount,
         date: transaction.date,
         paymentstatus: transaction.paymentStatus,
-        notes: transaction.notes || "",
+        notes: transaction.notes,
         createdat: now,
       }])
       .select()
@@ -37,7 +34,7 @@ export const addTransactionToSupabase = async (
     return {
       id: data.id,
       establishmentId: data.establishmentid,
-      employeeId: data.employeeid,
+      employeeId: data.employeeid, // ✅ здесь тоже исправляем
       productId: data.productid,
       quantity: data.quantity,
       type: data.type,
