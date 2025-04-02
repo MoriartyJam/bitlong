@@ -6,14 +6,26 @@ import { supabase } from "@/utils/supabaseClient";
 const EMPLOYEES_KEY = 'biltong-tracker-employees';
 
 export const addEmployeeToSupabase = async (
-  employee: Omit<Employee, "id" | "createdAt">
+  employee: Omit<Employee, "id" | "createdAt" | "updatedAt">
 ): Promise<Employee | null> => {
   try {
     const now = new Date().toISOString();
 
+    const newEmployee = {
+      name: employee.name,
+      email: employee.email,
+      mobile: employee.mobile,
+      address: employee.address || "Not specified",
+      employeenumber: employee.employeeNumber || crypto.randomUUID().slice(0, 8),
+      notes: employee.notes || "",
+      phone: employee.phone || "",
+      createdat: now,
+      updatedat: now,
+    };
+
     const { data, error } = await supabase
       .from("employees")
-      .insert([{ ...employee, createdat: now }])
+      .insert([newEmployee])
       .select()
       .single();
 
@@ -23,12 +35,18 @@ export const addEmployeeToSupabase = async (
     }
 
     console.log("✅ Сотрудник добавлен в Supabase:", data);
+
     return {
       id: data.id,
       name: data.name,
-      phone: data.phone,
       email: data.email,
+      mobile: data.mobile,
+      address: data.address,
+      notes: data.notes,
+      phone: data.phone,
+      employeeNumber: data.employeenumber,
       createdAt: data.createdat,
+      updatedAt: data.updatedat,
     };
   } catch (err) {
     console.error("❌ Ошибка запроса:", err);
