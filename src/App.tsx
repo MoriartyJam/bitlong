@@ -18,6 +18,8 @@ import EditEmployee from "./pages/employees/EditEmployee";
 import Products from "./pages/products/Products";
 import AddProduct from "./pages/products/AddProduct";
 import Settings from "./pages/Settings";
+import LoginPage from "@/pages/auth/LoginPage";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -29,6 +31,14 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
+            <Route
+                  path="/"
+                  element={
+                    <ProtectedRoute>
+                      <Index />
+                    </ProtectedRoute>
+                  }
+              />
             <Route path="/" element={<Index />} />
             <Route path="/establishments" element={<Establishments />} />
             <Route path="/establishments/add" element={<AddEstablishment />} />
@@ -42,6 +52,7 @@ const App = () => (
             <Route path="/products/add" element={<AddProduct />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="*" element={<NotFound />} />
+            <Route path="/login" element={<LoginPage />} />
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
