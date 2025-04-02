@@ -14,7 +14,7 @@ export const addEmployeeToSupabase = async (
     const newEmployee = {
       name: employee.name,
       email: employee.email,
-      mobile: employee.mobile,
+      mobile: employee.mobile || "", // 👈 обязательно передаём строку
       address: employee.address || "Not specified",
       employeenumber: employee.employeeNumber || crypto.randomUUID().slice(0, 8),
       notes: employee.notes || "",
@@ -42,8 +42,8 @@ export const addEmployeeToSupabase = async (
       email: data.email,
       mobile: data.mobile,
       address: data.address,
-      notes: data.notes,
       phone: data.phone,
+      notes: data.notes,
       employeeNumber: data.employeenumber,
       createdAt: data.createdat,
       updatedAt: data.updatedat,
